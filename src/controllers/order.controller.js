@@ -140,18 +140,26 @@
 
 
 
-import Order from "../models/order.model.js";
 
-// Create a new order and notify clients via Socket.IO
-const createOrder = async (req, res, io) => {
+
+
+
+
+
+
+
+
+import Order from "../models/order.model.js";
+import { io } from "../app.js";  // Import the Socket.io instance from the app.js file
+
+// Create a new order
+const createOrder = async (req, res) => {
   try {
     const order = new Order(req.body);
     await order.save();
 
-    // Emit the "newOrder" event to all clients when an order is created
-    io.emit("newOrder", order);
-
-  
+    // Emit the new order event to all connected clients
+    io.emit("newOrder", { message: "New order created", order });
 
     return res.status(201).json({ message: "Order created successfully", order });
   } catch (error) {
@@ -159,15 +167,16 @@ const createOrder = async (req, res, io) => {
   }
 };
 
-// Get pending orders (no change needed for Socket.IO here)
+// Get pending orders
 const getPendingOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ order: "pending" }).populate({
-      path: "items",
-      populate: {
-        path: "itemId",
-      },
-    });
+    const orders = await Order.find({ order: "pending" })
+      .populate({
+        path: "items",
+        populate: {
+          path: "itemId",
+        },
+      });
 
     return res.status(200).json(orders);
   } catch (error) {
@@ -178,12 +187,13 @@ const getPendingOrders = async (req, res) => {
 // Get confirmed orders
 const getConfirmOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ order: "confirm" }).populate({
-      path: "items",
-      populate: {
-        path: "itemId",
-      },
-    });
+    const orders = await Order.find({ order: "confirm" })
+      .populate({
+        path: "items",
+        populate: {
+          path: "itemId",
+        },
+      });
 
     return res.status(200).json(orders);
   } catch (error) {
@@ -194,12 +204,13 @@ const getConfirmOrders = async (req, res) => {
 // Get delivered orders
 const getDeliveredOrders = async (req, res) => {
   try {
-    const orders = await Order.find({ order: "delivered" }).populate({
-      path: "items",
-      populate: {
-        path: "itemId",
-      },
-    });
+    const orders = await Order.find({ order: "delivered" })
+      .populate({
+        path: "items",
+        populate: {
+          path: "itemId",
+        },
+      });
 
     return res.status(200).json(orders);
   } catch (error) {
@@ -221,42 +232,32 @@ const getOrderById = async (req, res) => {
   }
 };
 
-// Update an order by ID and notify clients
-const updateOrder = async (req, res, io) => {
+// Update an order by ID
+const updateOrder = async (req, res) => {
   const { id } = req.params;
   try {
     const updatedOrder = await Order.findByIdAndUpdate(id, req.body, {
       new: true,
       runValidators: true,
     });
-
     if (!updatedOrder) {
       return res.status(404).json({ message: "Order not found" });
     }
-
-    // Emit the "orderUpdated" event to all clients when an order is updated
-    io.emit("orderUpdated", updatedOrder);
-
     return res.status(200).json({ message: `Order ${req.body.order} successfully`, updatedOrder });
   } catch (error) {
     return res.status(400).json({ message: "Error updating order", error: error.message });
   }
 };
 
-// Delete an order by ID and notify clients
-const deleteOrder = async (req, res, io) => {
+// Delete an order by ID
+const deleteOrder = async (req, res) => {
   const { id } = req.params;
   try {
     const deletedOrder = await Order.findByIdAndDelete(id);
-
     if (!deletedOrder) {
       return res.status(404).json({ message: "Order not found" });
     }
-
-    // Emit the "orderDeleted" event to all clients when an order is deleted
-    io.emit("orderDeleted", deletedOrder);
-
-    return res.status(200).json({ message: "Order canceled successfully" });
+    return res.status(200).json({ message: "Order cancelled successfully" });
   } catch (error) {
     return res.status(500).json({ message: "Error deleting order", error: error.message });
   }

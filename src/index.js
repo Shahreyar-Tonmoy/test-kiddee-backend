@@ -49,57 +49,79 @@
 //     console.log("Failed to start the server:", err);
 //   });
 
-import connectDB from "./db/index.js";
-import { app, startServer } from "./app.js";
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+import dotenv from "dotenv";
+import connectDB from "./db/index.js";  // Assuming this is your MongoDB connection function
+import { app, server, io } from "./app.js";  // Import the app, server, and Socket.io from your app.js
 import ItemRouter from "./router/item.routes.js";
 import CategoryRouter from "./router/category.routes.js";
 import AuthorRouter from "./router/author.routes.js";
 import SearchRouter from "./router/search.routes.js";
-import OrderRouter from "./router/order.routes.js"; // Ensure the import path is correct
-import { Server } from "socket.io";
+import OrderRouter from "./router/order.routes.js";
 
+// Load environment variables
+dotenv.config();
 
-const PORT = process.env.PORT || 8000;
+// Function to start the server on a specific port
+const startServer = (port) => {
+  return server.listen(port);  // Start HTTP server (which is integrated with Socket.io)
+};
 
+// Function to handle retrying on port conflict
 const tryStartServer = (port) => {
-  const { server, io } = startServer(PORT);
+  const activeServer = startServer(port);
 
-  server.on("listening", () => {
+  activeServer.on("listening", () => {
     console.log(`Server is running at http://localhost:${port}`);
   });
 
-  server.on("error", (err) => {
+  activeServer.on("error", (err) => {
     if (err.code === "EADDRINUSE") {
-      console.log(`Port ${port} is already in use. Trying a different port...`);
-      tryStartServer(port + 1); // Try the next port
+      console.log(`Port ${port} is already in use. Trying the next port...`);
+      tryStartServer(port + 1);  // Retry with the next port
     } else {
       console.error("Error starting the server:", err);
-      process.exit(1);
+      process.exit(1);  // Exit on critical error
     }
   });
-
-  return io; // Return the io instance
 };
 
+// Define the port from environment variables or use a default port
+const PORT = process.env.PORT || 8000;
 
-
+// Connect to the database and start the server
 connectDB()
   .then(() => {
-    // Start the server and get the io instance
-    const io = tryStartServer(PORT);
-
-    // Add your routers, passing the io instance to OrderRouter
-    app.use("/api", ItemRouter);
+    // Register API routes
+    app.use("/api", ItemRouter);  // RESTful routing for items
     app.use("/api", CategoryRouter);
     app.use("/api", AuthorRouter);
     app.use("/api", SearchRouter);
-    app.use("/api", OrderRouter(io)); 
+    app.use("/api", OrderRouter);
 
-    // Root route
+    // Default route for checking if the server is running
     app.get("/", (req, res) => {
       res.send(`Server is running at http://localhost:${PORT}`);
     });
+
+    // Start the server and handle any port conflicts
+    tryStartServer(PORT);
   })
   .catch((err) => {
-    console.log("Failed to start the server:", err);
+    console.error("Failed to connect to the database:", err);
+    process.exit(1);  // Exit the process if the DB connection fails
   });

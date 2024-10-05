@@ -30,20 +30,34 @@
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import http from "http"; // Import the http module
-import { Server } from "socket.io"; // Import Server from socket.io
 import dotenv from "dotenv";
-
-const app = express();
+import http from "http";
+import { Server } from "socket.io";
 
 dotenv.config();
 
+const app = express();
+
+// Middleware setup
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN,
+    origin: process.env.CORS_ORIGIN, // Ensure your frontend URL is set in .env
     credentials: true,
   })
 );
@@ -57,31 +71,29 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
-// Create the HTTP server from the Express app
-const startServer = (port) => {
-  const server = http.createServer(app); // Create an HTTP server from the Express app
+// Create HTTP server and attach Socket.io to it
+const server = http.createServer(app);
 
-  const io = new Server(server, {
-    cors: {
-      origin: process.env.CORS_ORIGIN, 
-   
-    },
-  
-  })
+// Initialize Socket.io with CORS settings
+const io = new Server(server, {
+  cors: {
+    origin: process.env.CORS_ORIGIN || "https://kiddeebd.com", // Replace with your actual frontend URL
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+  transports: ['websocket', 'polling']
+});
 
-  io.on("connection", (socket) => {
-    console.log("New client connected");
 
-    // Handle socket events
-    socket.on("disconnect", () => {
-      console.log("Client disconnected");
-    });
+// Socket.io connection handling
+io.on("connection", (socket) => {
+  console.log("A user connected");
+
+  // Handle any custom events if needed
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
   });
+});
 
-  // Return both the server and io instance
-  return { server: server.listen(port), io }; // Return server and io
-};
-
-export { app, startServer };
-
-
+// Export the app and server for starting the server
+export { app, server, io };

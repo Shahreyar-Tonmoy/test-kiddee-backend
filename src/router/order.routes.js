@@ -25,6 +25,10 @@
 
 
 
+
+
+
+
 import express from "express";
 import {
   createOrder,
@@ -34,21 +38,18 @@ import {
   updateOrder,
   getConfirmOrders,
   getDeliveredOrders,
-} from "../controllers/order.controller.js";
+} from "../controllers/order.controller.js";  // Import the order controller functions
 
-const OrderRouter = (io) => {
-  const router = express.Router();
+const OrderRouter = express.Router();  // Create a new router
 
-  // Define your routes
-  router.post("/order", (req, res) => createOrder(req, res, io));
-  router.get("/pending-orders", getPendingOrders);
-  router.get("/confirm-orders", getConfirmOrders);
-  router.get("/delivered-orders", getDeliveredOrders);
-  router.get("/order/:id", getOrderById);
-  router.put("/order/:id", (req, res) => updateOrder(req, res, io));
-  router.delete("/order/:id", (req, res) => deleteOrder(req, res, io));
+// Define routes and map to controller functions
 
-  return router; // Return the router instance
-};
+OrderRouter.post("/order", createOrder);  // Create a new order
+OrderRouter.get("/pending-orders", getPendingOrders);  // Get all pending orders
+OrderRouter.get("/confirm-orders", getConfirmOrders);  // Get all confirmed orders
+OrderRouter.get("/delivered-orders", getDeliveredOrders);  // Get all delivered orders
+OrderRouter.get("/order/:id", getOrderById);  // Get a single order by ID
+OrderRouter.put("/order/:id", updateOrder);  // Update an order by ID
+OrderRouter.delete("/order/:id", deleteOrder);  // Delete an order by ID
 
-export default OrderRouter;
+export default OrderRouter;  // Export the router
